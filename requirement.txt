@@ -1,0 +1,7 @@
+streamlit
+ollama
+pandas
+numpy
+pdpdf
+opnpyxl
+pytest
