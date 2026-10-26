@@ -2,6 +2,6 @@ streamlit
 ollama
 pandas
 numpy
-pdpdf
-opnpyxl
+pdfplumber
+openpyxl
 pytest
