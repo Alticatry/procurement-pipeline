@@ -27,6 +27,10 @@ class ExtractionError(Exception):
     pass
 
 
+class ModelUnavailableError(ExtractionError):
+    pass
+
+
 def build_messages(text):
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -114,7 +118,7 @@ def parse_response(content):
     return data
 
 
-def extract_offers(text, model=MODEL_NAME, chat_fn=None):
+def extract_offers(text, model=MODEL_NAME, chat_fn=None, supplier=None):
     if not text or not text.strip():
         raise ExtractionError("There is no text to extract from.")
 
@@ -127,11 +131,34 @@ def extract_offers(text, model=MODEL_NAME, chat_fn=None):
             options={"temperature": 0},
         )
     except Exception as exc:
-        raise ExtractionError(
+        raise ModelUnavailableError(
             f"Could not reach Ollama or the model '{model}'. "
             f"Make sure Ollama is running and the model is pulled. Details: {exc}"
         ) from exc
 
     content = response["message"]["content"]
-    valid, errors = validate_offers(parse_response(content))
+    raw_offers = parse_response(content)
+    if supplier and supplier.strip():
+        for item in raw_offers:
+            if isinstance(item, dict):
+                item["supplier"] = supplier.strip()
+    valid, errors = validate_offers(raw_offers)
     return {"offers": valid, "errors": errors, "raw": content}
+
+
+def extract_messages(messages, model=MODEL_NAME, supplier=None, chat_fn=None):
+    offers = []
+    errors = []
+    for number, message in enumerate(messages, start=1):
+        try:
+            result = extract_offers(message, model=model, chat_fn=chat_fn, supplier=supplier)
+        except ModelUnavailableError:
+            raise
+        except ExtractionError as exc:
+            errors.append(f"Message {number}: {exc}")
+            continue
+        offers.extend(result["offers"])
+        errors.extend(f"Message {number}: {error}" for error in result["errors"])
+        if not result["offers"] and not result["errors"]:
+            errors.append(f"Message {number}: no offers were found.")
+    return {"offers": offers, "errors": errors, "message_count": len(messages)}

@@ -79,3 +79,27 @@ def test_input_offers_not_mutated():
     ]
     saw_engine.rank_offers(offers)
     assert "utility_score" not in offers[0]
+
+
+def test_chapter_two_worked_example():
+    offers = [
+        {"supplier": "A", "unit_price": 1850, "delivery_days": 3},
+        {"supplier": "B", "unit_price": 1720, "delivery_days": 5},
+        {"supplier": "C", "unit_price": 1790, "delivery_days": 2},
+    ]
+    ranked = saw_engine.rank_offers(offers, {"unit_price": 0.6, "delivery_days": 0.4})
+    scores = {row["supplier"]: row["utility_score"] for row in ranked}
+    assert [row["supplier"] for row in ranked] == ["C", "B", "A"]
+    assert scores["C"] == pytest.approx(0.6769, abs=0.0001)
+    assert scores["B"] == pytest.approx(0.6000, abs=0.0001)
+    assert scores["A"] == pytest.approx(0.2667, abs=0.0001)
+
+
+def test_chapter_two_example_with_price_weight_ninety():
+    offers = [
+        {"supplier": "A", "unit_price": 1850, "delivery_days": 3},
+        {"supplier": "B", "unit_price": 1720, "delivery_days": 5},
+        {"supplier": "C", "unit_price": 1790, "delivery_days": 2},
+    ]
+    ranked = saw_engine.rank_offers(offers, {"unit_price": 0.9, "delivery_days": 0.1})
+    assert ranked[0]["supplier"] == "B"
